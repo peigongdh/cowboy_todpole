@@ -10,18 +10,41 @@ init(Req, Opts) ->
   {cowboy_websocket, Req, Opts}.
 
 websocket_init(State) ->
-  erlang:start_timer(1000, self(), <<"Hello!">>),
-  {ok, State}.
+  Msg = #{<<"type">> => <<"welcome">>, <<"id">> => State},
+  MsgEncode = jsone:encode(Msg),
+  {reply, {text, MsgEncode}, State}.
 
 websocket_handle({text, Msg}, State) ->
   MsgDecode = jsone:decode(Msg),
-  MsgEncode = jsone:encode(MsgDecode),
-  {reply, {text, <<"That's what she said! ", MsgEncode/binary>>}, State};
+  #{<<"type">> := Type} = MsgDecode,
+  if
+    Type == <<"login">> ->
+      {ok, State};
+    Type == <<"update">> ->
+      UpdateMsg = MsgDecode#{
+        <<"id">> => State
+      },
+      MsgEncode = jsone:encode(UpdateMsg),
+      {reply, {text, MsgEncode}, State};
+    Type == <<"message">> ->
+      UpdateMsg = MsgDecode#{
+        <<"id">> => State
+      },
+      MsgEncode = jsone:encode(UpdateMsg),
+      {reply, {text, MsgEncode}, State};
+    Type == <<"shoot">> ->
+      UpdateMsg = MsgDecode#{
+        <<"id">> => State
+      },
+      MsgEncode = jsone:encode(UpdateMsg),
+      {reply, {text, MsgEncode}, State};
+    true ->
+      {ok, State}
+  end;
 websocket_handle(_Data, State) ->
   {ok, State}.
 
 websocket_info({timeout, _Ref, Msg}, State) ->
-  erlang:start_timer(1000, self(), <<"How' you doin'?">>),
   {reply, {text, Msg}, State};
 websocket_info(_Info, State) ->
   {ok, State}.
