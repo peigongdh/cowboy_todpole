@@ -2,12 +2,17 @@
 -behavior(cowboy_handler).
 
 -export([init/2]).
+-export([terminate/3]).
 -export([websocket_init/1]).
 -export([websocket_handle/2]).
 -export([websocket_info/2]).
 
 init(Req, Opts) ->
   {cowboy_websocket, Req, Opts}.
+
+terminate(_Req, _State, _Reason) ->
+  cowboy_todpole_server:unregister(self()),
+  ok.
 
 websocket_init(_State) ->
   cowboy_todpole_server:register(self()),
@@ -17,7 +22,6 @@ websocket_init(_State) ->
       [{uid_index, Index}] ->
         NUid = Index + 1,
         ets:insert(user_info, {uid_index, NUid}),
-        ets:insert(user_info, {user, {uid, Index}}),
         Index;
       _ ->
         1
@@ -40,7 +44,6 @@ websocket_handle({text, Msg}, State) ->
         <<"name">> => <<"Guest.", (integer_to_binary(Uid))/binary>>
       },
       MsgEncode = jsone:encode(UpdateMsg),
-      % {reply, {text, MsgEncode}, State};
       cowboy_todpole_server:msg(MsgEncode),
       {ok, State};
     Type == <<"message">> ->
@@ -48,7 +51,6 @@ websocket_handle({text, Msg}, State) ->
         <<"id">> => Uid
       },
       MsgEncode = jsone:encode(UpdateMsg),
-      % {reply, {text, MsgEncode}, State};
       cowboy_todpole_server:msg(MsgEncode),
       {ok, State};
     Type == <<"shoot">> ->
@@ -56,7 +58,6 @@ websocket_handle({text, Msg}, State) ->
         <<"id">> => Uid
       },
       MsgEncode = jsone:encode(UpdateMsg),
-      % {reply, {text, MsgEncode}, State};
       cowboy_todpole_server:msg(MsgEncode),
       {ok, State};
     true ->
